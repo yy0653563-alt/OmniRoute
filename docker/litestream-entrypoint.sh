@@ -1,12 +1,16 @@
 #!/bin/sh
-# DIAGNOSTIC version: prints markers so the Render log shows exactly
-# how far startup gets, and reports the app's exit code instead of
-# exec-ing away silently. Revert to the exec version once diagnosed.
+# OmniRoute entrypoint with Litestream backup.
+# On boot: restore the SQLite database from Backblaze B2 if the local file
+# is missing (Render free instances wipe local files on every restart),
+# then run the app under `litestream replicate` so every change streams
+# to B2 continuously. If no bucket is configured, run the app as usual.
 set -e
 
-echo "[entrypoint] starting, args: $*"
-echo "[entrypoint] LITESTREAM_BUCKET set: ${LITESTREAM_BUCKET:+yes}"
-echo "[entrypoint] DATA_DIR=$DATA_DIR PORT=$PORT"
+# Render's Docker deploy passes no command when the Docker Command field
+# is left empty, so default to the app's start command.
+if [ "$#" -eq 0 ]; then
+  set -- node dev/run-standalone.mjs
+fi
 
 DB_PATH="${DATA_DIR:-/app/data}/storage.sqlite"
 
@@ -16,10 +20,7 @@ if [ -n "$LITESTREAM_BUCKET" ]; then
     litestream restore -if-replica-exists -config /etc/litestream.yml "$DB_PATH" || true
   fi
   echo "[litestream] Starting app with continuous backup..."
-  /app/check-permissions.sh litestream replicate -config /etc/litestream.yml --exec "$*"
-  echo "[entrypoint] litestream exited with code $?"
+  exec /app/check-permissions.sh litestream replicate -config /etc/litestream.yml --exec "$*"
 else
-  echo "[entrypoint] no bucket configured, starting app directly"
-  /app/check-permissions.sh "$@"
-  echo "[entrypoint] app exited with code $?"
+  exec /app/check-permissions.sh "$@"
 fi

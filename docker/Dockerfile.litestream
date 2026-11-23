@@ -1,0 +1,26 @@
+# Small overlay image: the official OmniRoute image plus Litestream,
+# so the SQLite database is continuously backed up to Backblaze B2
+# (Render free instances wipe local files on every restart).
+# Build this file, not the root Dockerfile: the full app build needs
+# ~9 GB of RAM and does not fit small builders (upstream's own note:
+# hosted 7 GB runners die building this tree).
+# Base image is pinned by digest to the exact image running live now
+# (v3.8.54, deployed 2026-11-19).
+FROM diegosouzapw/omniroute@sha256:2be638c210c7a559643e8f68bdcac2167e4eacfef370fdd9eabb825eebe56d32
+
+USER root
+
+ARG LITESTREAM_VERSION=0.5.18
+RUN set -eux; \
+  apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*; \
+  curl -fsSL -o /tmp/litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.tar.gz"; \
+  tar -xzf /tmp/litestream.tar.gz -C /usr/local/bin litestream; \
+  rm -f /tmp/litestream.tar.gz; \
+  litestream version
+
+COPY litestream.yml /etc/litestream.yml
+COPY docker/litestream-entrypoint.sh /app/litestream-entrypoint.sh
+RUN chmod +x /app/litestream-entrypoint.sh
+
+USER node
+ENTRYPOINT ["/app/litestream-entrypoint.sh"]

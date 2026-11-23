@@ -24,3 +24,6 @@ RUN chmod +x /app/litestream-entrypoint.sh
 
 USER node
 ENTRYPOINT ["/app/litestream-entrypoint.sh"]
+# Explicit CMD: the entrypoint also defaults to this when Render passes
+# no command (empty Docker Command field overrides the base image CMD).
+CMD ["node", "dev/run-standalone.mjs"]

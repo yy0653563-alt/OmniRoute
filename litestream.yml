@@ -1,0 +1,18 @@
+# Litestream configuration for the OmniRoute fork (yy0653563-alt/OmniRoute).
+# Continuous SQLite backup to Backblaze B2 (S3-compatible, 10 GB free, no card).
+# Credentials come from the environment (auto-read by Litestream):
+#   AWS_ACCESS_KEY_ID     = B2 application keyID (bucket-scoped, Read and Write)
+#   AWS_SECRET_ACCESS_KEY = B2 applicationKey
+# The bucket/endpoint/region are env vars set on the Render service:
+#   LITESTREAM_BUCKET   = B2 bucket name (e.g. omniroute-backup)
+#   LITESTREAM_ENDPOINT = B2 S3 endpoint hostname, no scheme (e.g. s3.us-west-004.backblazeb2.com)
+#   LITESTREAM_REGION   = B2 region (e.g. us-west-004)
+# Litestream v0.5.0+ auto-detects B2 endpoints (force-path-style + sign-payload).
+dbs:
+  - path: /app/data/storage.sqlite
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: omniroute
+      endpoint: ${LITESTREAM_ENDPOINT}
+      region: ${LITESTREAM_REGION}

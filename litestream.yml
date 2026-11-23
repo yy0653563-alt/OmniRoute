@@ -13,6 +13,6 @@ dbs:
     replica:
       type: s3
       bucket: ${LITESTREAM_BUCKET}
-      path: omniroute
+      path: omniroute2
       endpoint: ${LITESTREAM_ENDPOINT}
       region: ${LITESTREAM_REGION}

@@ -1,0 +1,153 @@
+name: Set Render env vars and deploy
+
+# Sets the omniroute-litestream service env vars on Render from repo secrets,
+# then triggers a redeploy. Secrets are never printed (only HTTP codes).
+# Required secrets (Settings -> Secrets and variables -> Actions):
+#   RENDER_API_KEY          Render API key (Services Read & write + Deploys Run)
+#   INITIAL_PASSWORD        Dashboard login password for the new service
+#   STORAGE_ENCRYPTION_KEY  Passphrase for encrypting stored provider keys
+#   LITESTREAM_BUCKET       Backblaze B2 bucket name
+#   LITESTREAM_ENDPOINT     B2 S3 endpoint hostname, no scheme (e.g. s3.us-east-005.backblazeb2.com)
+#   LITESTREAM_REGION       B2 region (e.g. us-east-005)
+#   AWS_ACCESS_KEY_ID       B2 application keyID (bucket-scoped, Read and Write)
+#   AWS_SECRET_ACCESS_KEY   B2 applicationKey
+# Any secret left unset is skipped (its env var is left unchanged).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  set-env-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Render API access
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json")
+          echo "get service HTTP: $CODE"
+      - name: Set INITIAL_PASSWORD on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          INITIAL_PASSWORD: ${{ secrets.INITIAL_PASSWORD }}
+        run: |
+          if [ -z "$INITIAL_PASSWORD" ]; then
+            echo "INITIAL_PASSWORD secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$INITIAL_PASSWORD" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/INITIAL_PASSWORD" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set INITIAL_PASSWORD HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set STORAGE_ENCRYPTION_KEY on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          STORAGE_ENCRYPTION_KEY: ${{ secrets.STORAGE_ENCRYPTION_KEY }}
+        run: |
+          if [ -z "$STORAGE_ENCRYPTION_KEY" ]; then
+            echo "STORAGE_ENCRYPTION_KEY secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$STORAGE_ENCRYPTION_KEY" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/STORAGE_ENCRYPTION_KEY" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set STORAGE_ENCRYPTION_KEY HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set LITESTREAM_BUCKET on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          LITESTREAM_BUCKET: ${{ secrets.LITESTREAM_BUCKET }}
+        run: |
+          if [ -z "$LITESTREAM_BUCKET" ]; then
+            echo "LITESTREAM_BUCKET secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$LITESTREAM_BUCKET" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/LITESTREAM_BUCKET" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set LITESTREAM_BUCKET HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set LITESTREAM_ENDPOINT on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          LITESTREAM_ENDPOINT: ${{ secrets.LITESTREAM_ENDPOINT }}
+        run: |
+          if [ -z "$LITESTREAM_ENDPOINT" ]; then
+            echo "LITESTREAM_ENDPOINT secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$LITESTREAM_ENDPOINT" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/LITESTREAM_ENDPOINT" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set LITESTREAM_ENDPOINT HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set LITESTREAM_REGION on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          LITESTREAM_REGION: ${{ secrets.LITESTREAM_REGION }}
+        run: |
+          if [ -z "$LITESTREAM_REGION" ]; then
+            echo "LITESTREAM_REGION secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$LITESTREAM_REGION" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/LITESTREAM_REGION" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set LITESTREAM_REGION HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set AWS_ACCESS_KEY_ID on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+            echo "AWS_ACCESS_KEY_ID secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$AWS_ACCESS_KEY_ID" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/AWS_ACCESS_KEY_ID" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set AWS_ACCESS_KEY_ID HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Set AWS_SECRET_ACCESS_KEY on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "AWS_SECRET_ACCESS_KEY secret is not set; skipping."
+            exit 0
+          fi
+          BODY=$(jq -n --arg v "$AWS_SECRET_ACCESS_KEY" '{value: $v}')
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/env-vars/AWS_SECRET_ACCESS_KEY" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "set AWS_SECRET_ACCESS_KEY HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300
+      - name: Trigger Render deploy
+        if: always()
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.render.com/v1/services/srv-dc22uqhksfps73aat09g/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache":"do_not_clear"}')
+          echo "trigger deploy HTTP: $CODE"
+          test "$CODE" -ge 200 -a "$CODE" -lt 300

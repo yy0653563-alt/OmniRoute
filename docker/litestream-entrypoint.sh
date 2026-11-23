@@ -1,10 +1,12 @@
 #!/bin/sh
-# OmniRoute entrypoint with Litestream backup.
-# On boot: restore the SQLite database from Backblaze B2 if the local file
-# is missing (Render free instances wipe local files on every restart),
-# then run the app under `litestream replicate` so every change streams
-# to B2 continuously. If no bucket is configured, run the app as usual.
+# DIAGNOSTIC version: prints markers so the Render log shows exactly
+# how far startup gets, and reports the app's exit code instead of
+# exec-ing away silently. Revert to the exec version once diagnosed.
 set -e
+
+echo "[entrypoint] starting, args: $*"
+echo "[entrypoint] LITESTREAM_BUCKET set: ${LITESTREAM_BUCKET:+yes}"
+echo "[entrypoint] DATA_DIR=$DATA_DIR PORT=$PORT"
 
 DB_PATH="${DATA_DIR:-/app/data}/storage.sqlite"
 
@@ -14,7 +16,10 @@ if [ -n "$LITESTREAM_BUCKET" ]; then
     litestream restore -if-replica-exists -config /etc/litestream.yml "$DB_PATH" || true
   fi
   echo "[litestream] Starting app with continuous backup..."
-  exec /app/check-permissions.sh litestream replicate -config /etc/litestream.yml --exec "$*"
+  /app/check-permissions.sh litestream replicate -config /etc/litestream.yml --exec "$*"
+  echo "[entrypoint] litestream exited with code $?"
 else
-  exec /app/check-permissions.sh "$@"
+  echo "[entrypoint] no bucket configured, starting app directly"
+  /app/check-permissions.sh "$@"
+  echo "[entrypoint] app exited with code $?"
 fi
